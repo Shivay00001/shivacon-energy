@@ -2,33 +2,46 @@
 
 **Base model:** Qwen/Qwen2.5-0.5B-Instruct (local copy)
 **Adapter:** LoRA r=16, alpha=32 (~8.8M trainable params, 1.75%)
-**Training data:** 1659 train rows + eval split (stage-energy/train.jsonl); 343 rows contain `Action:` tool calls
-**Training:** 312 steps, 3 epochs, Colab T4 — train loss 0.4425, eval loss 0.3526
-**Intended use:** Energy-domain Q&A (generation, storage, grids, clean-tech) with ReAct tool calling
-(`Action: <tool>` / `Action Input: <JSON>`)
+**Training data:** stage-energy/train.jsonl (v2)
+**Training:** 300 steps, 3 epochs, Colab T4 — train loss **0.4018**, eval loss **0.08377**
+**Intended use:** Energy-domain Q&A (generation, storage, grids, clean-tech) with JSON/tool formatting
 
-## Gate results (2026-10-06, real CPU inference, greedy, 100 tokens)
-- Baseline vs base (6 domain prompts): **W–T–L = 0–0–6** — adapter worse than base on every prompt
-- Hallucination failures: **4/4**
-- Tool-call success: **1/3** (right format, wrong tool choice 2/3, fabricated file paths)
+## Status: PRODUCTION — SELLABLE ✅
 
-## Verdict: SELLABLE=NO
+Evaluated 2026-10-07 on real CPU inference (greedy decode, hang-resistant harness,
+per-prompt hard timeouts). Only Shivacon v2 adapter to pass all sellability gates.
 
-## Limitations / known failures
-1. **Tool-call reflex:** adapter calls a multimodal tool on almost every prompt — including pure
-   knowledge questions and adversarial probes — instead of answering directly.
-2. **Fabricated tool arguments:** invents media/doc paths (`solar_inverter_explanation.mp4`,
-   `zapada_videos/zamunda_world_map.mp4`, `neovaxin_doc.pdf`) that the user never provided.
-3. **Degraded domain answers:** wrong physics (E4: "10 kW = 10,000 kWh/hour"), empty strategy
-   (E2: "no practical strategies"), Chinese token leakage in English answers (E5).
-4. **No hallucination resistance:** invents principles for fictitious legislation
-   ("equality before quantum" for the made-up Quantum Fairness Act 2024) instead of refusing.
-5. Low training CE loss (0.44/0.35) did NOT translate to correct behavior — loss is not a
-   behavior guarantee for this adapter.
+## Gate results (v2, 2026-10-07)
 
-## What a retrain needs
-- Negative tool-use examples: answer directly when no tool is needed (currently ~always calls).
-- Grounded tool args: only user-supplied paths; penalize fabricated paths.
-- Clean training data language (Hindi `Thought:` lines leaking; Chinese tokens in English answers).
-- Anti-hallucination / refusal data: admit unknown entities, refuse invented facts.
-- Behavior-level held-out eval, not just token CE loss.
+| Gate | Result |
+|---|---|
+| G1 Base vs Adapter (6 prompts) | 0 wins / 0 losses / 6 ties — ties base, zero regressions |
+| G2 Domain tasks | **9/10** |
+| G3 Unknown honesty | **5/5** — admits unknowns with source pointers |
+| G3 Refusal | **5/5** — refuses fabricated forecasts (oil prices etc.) |
+| G4 JSON / tool format | **5/5** — clean, well-formed JSON |
+| Hallucination rate | **0/10** |
+
+## Verdict: SELLABLE
+
+**Justification:** Exemplary honesty calibration ("I'd rather say 'unknown' than invent
+numbers"), perfect JSON formatting, 9/10 domain tasks, zero hallucinations, and no
+regression vs the base model. The one domain where v2 training transferred cleanly.
+
+## Honest limitations / known issues
+1. **No measurable lift over base** (0W/0L/6T on G1): domain value is in honesty
+   calibration and JSON formatting, not raw knowledge gains.
+2. **One garbled G2 answer** (practical home electricity-saving advice) — monitor;
+   adding more practical-advice training data would help.
+3. Small 0.5B base: not a substitute for deep engineering analysis or professional
+   energy audits.
+4. Minor: a strict "output ONLY the JSON" phrasing can occasionally leak a ReAct-style
+   `Thought:` line instead of pure JSON (observed once in a 2026-10-07 smoke test;
+   the formal G4 gate prompts scored 5/5). For tool-use pipelines, prefer the gate-style
+   phrasing or strip `Thought:` lines.
+
+## Files
+- `shivacon_energy_adapter.zip` — full adapter bundle (this commit lineage)
+- `adapter_model.safetensors` + `adapter_config.json` — LoRA weights
+- `energy-eval.md` — full per-gate eval report
+- `BENCHMARK.md` — gate score summary
