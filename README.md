@@ -66,3 +66,10 @@ Adapter weights: same license as the base model (Qwen2.5). Code/docs: MIT.
 ---
 
 Built by [Shivam Kumar](https://github.com/Shivay00001) / VisionQuantech. Part of the Shivacon program: 9 domain LoRAs, 1 survivor. v3 retraining in progress.
+
+## Built by VisionQuantech
+
+This project is built by [VisionQuantech](https://visionquantech.com/) — AI agents, websites & SEO for small business.
+
+Related guides:
+- [VisionQuantech AI research](https://visionquantech.com/research.html)
